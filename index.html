@@ -4,20 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pixel Grid Renderer</title>
-  <style> /* Keep these styles collapsed, as we have a 200 line file limit */
-    .inputArea { width: 200px; height: 100px; }
+  <style>
+    .inputArea { width: 200px; height: 300px; }
     .canvas { border: 1px solid black; }
     .slider-container { margin-bottom: 10px; }
     label { font-weight: bold; display: block; margin-bottom: 5px; }
   </style>
   <script src="layers.js"></script> 
+  <script src="code.js"></script> 
 </head>
 <body>
   <div class="grid-container">
     <h2>Size, Finding Patters, and Timing</h2>
-    <label for="size-slider">Size</label> <input id="size-slider" type="range" min="1" max="40" value="1" step="1">
-    <p id="size-value">Current Size: 1</p>
-    <textarea class="inputArea sizeLayer"></textarea> <canvas class="canvas sizeCanvas"></canvas>
+    <label for="size-value">Size</label> <input id="size-slider" type="range" min="1" max="40" value="6" step="1">
+    <p id="size-value">Current Size: 6</p>
+    <textarea class="inputArea sizeLayer" hidden="true"></textarea> <canvas class="canvas sizeCanvas"></canvas>
   </div>
   <div class="grid-container">
     <h2>Data Encoding</h2>
@@ -39,7 +40,7 @@
   </div>
 
   <script>
-    const cellSize = 16;
+    const cellSize = 6;
     const layers = [
       { input: document.querySelector('.inputArea.sizeLayer'), canvas: document.querySelector('.canvas.sizeCanvas') },
       { input: document.querySelector('.inputArea.encodingLayer'), canvas: document.querySelector('.canvas.encodingCanvas') },
@@ -56,36 +57,18 @@
       layer.input.addEventListener('keyup', drawCombinedGrid);
     });
 
-    document.getElementById('size-slider').addEventListener('input', function() {
+    function updateVersion() {
       const sizeValueElement = document.getElementById('size-value');
-      sizeValueElement.textContent = 'Current Size: ' + this.value;
+      const version = parseInt(this.value) || 6;
+      sizeValueElement.textContent = 'Current Version (Size): ' + version;
       
-      // Update the input area with a (17 + 4n) square grid of '-'
-      const n = parseInt(this.value);
-      const size = 17 + 4 * n;
-      const gridPattern = Array(size).fill(null).map(_=>Array(size).fill('-'));
-      const addFinder = (grid, x, y) => {
-        for (let i=-4; i<=4; i++)
-          for (let j=-4; j<=4; j++)
-            if (x+i>=0 && y+j>=0 && x+i<grid.length && y+j<grid[x+i].length)
-              grid[x+i][y+j] = Math.max(Math.abs(i),Math.abs(j))%2==0?'0':'1';
-        // center dot
-        grid[x][y] = '1';
-      }
-      addFinder(gridPattern, 3, 3);
-      addFinder(gridPattern, size-4, 3);
-      addFinder(gridPattern, 3, size-4);
-      // Timing lines
-      for (let i=8; i<size-8; i++){
-        gridPattern[i][6] = i%2==0?'1':'0';
-        gridPattern[6][i] = i%2==0?'1':'0';
-      }
-      // Always on dot
-      gridPattern[size-6][8] = '1';
+      const gridPattern = drawConstantPatterns(version);
 
       layers[0].input.value = gridPattern.map(row=>row.join('')).join('\n');
       drawCombinedGrid(); // Trigger an update after changing the text area
-    });
+    };
+    document.getElementById('size-slider').addEventListener('input', updateVersion);
+    updateVersion();
   </script>
 </body>
 </html>
