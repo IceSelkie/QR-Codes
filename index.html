@@ -9,9 +9,15 @@
     .canvas { border: 1px solid black; }
     .slider-container { margin-bottom: 10px; }
     label { font-weight: bold; display: block; margin-bottom: 5px; }
+
+    .mode-badge { display: inline-block; padding: 4px 8px; margin: 2px; border-radius: 4px; color: #fff; font-size: 14px; font-weight: bold; font-family: Arial, sans-serif; }
+    .numeric { background-color: #4CAF50; }
+    .alphanumeric { background-color: #2196F3; }
+    .byte { background-color: #f44336; }
   </style>
-  <script src="layers.js"></script> 
-  <script src="code.js"></script> 
+  <script src="layers.js"></script>
+  <script src="qrcode.js"></script>
+  <script src="encoding.js"></script>
 </head>
 <body>
   <div class="grid-container">
@@ -22,7 +28,19 @@
   </div>
   <div class="grid-container">
     <h2>Data Encoding</h2>
-    <textarea class="inputArea encodingLayer"></textarea> <canvas class="canvas encodingCanvas"></canvas>
+
+    <!-- Encoding Section -->
+    <div class="section" id="encodeContainer">
+        <h2>Encoder</h2>
+        <textarea id="inputText" placeholder="Enter your text here"></textarea>
+        <div id="outputContainer">
+            <h3>Encoded Binary String</h3>
+            <tt id="binaryOutput" readonly></tt>
+            <div id="modeDisplay"><strong>Encoding Modes Used:</strong> <span id="modeUsed"></span></div>
+        </div>
+    </div>
+
+    <textarea class="inputArea encodingLayer" hidden="true"></textarea> <canvas class="canvas encodingCanvas" hidden="true"></canvas>
   </div>
   <div class="grid-container">
     <h2>Error Correction</h2>
@@ -69,6 +87,31 @@
     };
     document.getElementById('size-slider').addEventListener('input', updateVersion);
     updateVersion();
+
+
+    function displayMode(mode) {
+      // Clear previous mode
+      modeUsed.innerHTML = '';
+
+      // Create a badge for the current mode
+      const span = document.createElement('span');
+      span.className = `mode-badge ${mode.toLowerCase()}`;
+      span.textContent = mode;
+      modeUsed.appendChild(span);
+    }
+
+    function updateEncodedText() {
+      const inputText = document.getElementById('inputText');
+      const binaryOutput = document.getElementById('binaryOutput');
+      const modeUsed = document.getElementById('modeUsed');
+
+      const { encodingMode, binaryString } = getAutomaticEncoding(inputText.value);
+      binaryOutput.innerHTML = binaryString;
+      displayMode(encodingMode);
+
+    }
+    document.getElementById('inputText').addEventListener('input', updateEncodedText);
+
   </script>
 </body>
 </html>
