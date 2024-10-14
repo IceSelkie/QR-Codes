@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel Grid Renderer</title>
+  <style> /* Keep these styles collapsed, as we have a 200 line file limit */
+    .inputArea { width: 200px; height: 100px; }
+    .canvas { border: 1px solid black; }
+    .slider-container { margin-bottom: 10px; }
+    label { font-weight: bold; display: block; margin-bottom: 5px; }
+  </style>
+  <script src="layers.js"></script> 
+</head>
+<body>
+  <div class="grid-container">
+    <h2>Size, Finding Patters, and Timing</h2>
+    <label for="size-slider">Size</label> <input id="size-slider" type="range" min="1" max="40" value="1" step="1">
+    <p id="size-value">Current Size: 1</p>
+    <textarea class="inputArea sizeLayer"></textarea> <canvas class="canvas sizeCanvas"></canvas>
+  </div>
+  <div class="grid-container">
+    <h2>Data Encoding</h2>
+    <textarea class="inputArea encodingLayer"></textarea> <canvas class="canvas encodingCanvas"></canvas>
+  </div>
+  <div class="grid-container">
+    <h2>Error Correction</h2>
+    <label>Level</label> <input type="radio" values="0,1,2,3" selected="0">
+    <!-- 0: "L (low)", 1: "M (medium)", 2: "Q (quartile)", 3: "H (high)" --> <p>Current Level: L (low)</p>
+    <textarea class="inputArea correctionLayer"></textarea> <canvas class="canvas correctionCanvas"></canvas>
+  </div>
+  <div class="grid-container">
+    <h2>Data Masking</h2>
+    <textarea class="inputArea maskingLayer"></textarea> <canvas class="canvas maskingCanvas"></canvas>
+  </div>
+  <div class="grid-container">
+    <h2>Final Combined</h2>
+    <textarea class="inputArea finalLayer"></textarea> <canvas class="canvas finalCanvas"></canvas>
+  </div>
+
+  <script>
+    const cellSize = 16;
+    const layers = [
+      { input: document.querySelector('.inputArea.sizeLayer'), canvas: document.querySelector('.canvas.sizeCanvas') },
+      { input: document.querySelector('.inputArea.encodingLayer'), canvas: document.querySelector('.canvas.encodingCanvas') },
+      { input: document.querySelector('.inputArea.correctionLayer'), canvas: document.querySelector('.canvas.correctionCanvas') },
+      { input: document.querySelector('.inputArea.maskingLayer'), canvas: document.querySelector('.canvas.maskingCanvas') },
+      { input: document.querySelector('.inputArea.finalLayer'), canvas: document.querySelector('.canvas.finalCanvas') }
+    ];
+
+    // Attach individual event listeners to each input
+    layers.forEach((layer, index) => {
+      layer.input.addEventListener('input', drawCombinedGrid);
+      layer.input.addEventListener('select', drawCombinedGrid);
+      layer.input.addEventListener('mouseup', drawCombinedGrid);
+      layer.input.addEventListener('keyup', drawCombinedGrid);
+    });
+
+    document.getElementById('size-slider').addEventListener('input', function() {
+      const sizeValueElement = document.getElementById('size-value');
+      sizeValueElement.textContent = 'Current Size: ' + this.value;
+      
+      // Update the input area with a (17 + 4n) square grid of '-'
+      const n = parseInt(this.value);
+      const size = 17 + 4 * n;
+      const gridPattern = Array(size).fill(null).map(_=>Array(size).fill('-'));
+      const addFinder = (grid, x, y) => {
+        for (let i=-4; i<=4; i++)
+          for (let j=-4; j<=4; j++)
+            if (x+i>=0 && y+j>=0 && x+i<grid.length && y+j<grid[x+i].length)
+              grid[x+i][y+j] = Math.max(Math.abs(i),Math.abs(j))%2==0?'0':'1';
+        // center dot
+        grid[x][y] = '1';
+      }
+      addFinder(gridPattern, 3, 3);
+      addFinder(gridPattern, size-4, 3);
+      addFinder(gridPattern, 3, size-4);
+      // Timing lines
+      for (let i=8; i<size-8; i++){
+        gridPattern[i][6] = i%2==0?'1':'0';
+        gridPattern[6][i] = i%2==0?'1':'0';
+      }
+      // Always on dot
+      gridPattern[size-6][8] = '1';
+
+      layers[0].input.value = gridPattern.map(row=>row.join('')).join('\n');
+      drawCombinedGrid(); // Trigger an update after changing the text area
+    });
+  </script>
+</body>
+</html>
