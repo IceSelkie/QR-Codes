@@ -1,10 +1,24 @@
 const alphanumericTable = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
-function getAutomaticEncoding(text) {
+const modeIndicators = {
+  'Numeric': '0001',
+  'Alphanumeric': '0010',
+  'Byte': '0100',
+  'Kanji': '1000',
+};
+
+const bitLengthsBitLengths = {
+  'Numeric': [10, 12, 14],
+  'Alphanumeric': [9, 11, 13],
+  'Byte': [8, 16, 16],
+  'Kanji': [8, 10, 12],
+}
+
+function getAutomaticEncoding(text, version) {
   const encoders = {
     'Numeric':encodeNumeric,
     'Alphanumeric':encodeAlphanumeric,
-    'Byte':encodeByte
+    'Byte':encodeByte,
   };
 
   const inputLength = text.length;
@@ -12,7 +26,18 @@ function getAutomaticEncoding(text) {
   const encoder = encoders[encodingMode];
   const binaryString = encoder(text);
 
-  return { encodingMode, inputLength, binaryString };
+  if (version === undefined)
+    return { encodingMode, inputLength, binaryString };
+
+  const headerMode = modeIndicators[encodingMode]
+  const headerLength = encodeLength(version, encodingMode, inputLength);
+  const segments = [
+    {'type':'mode', 'content':headerMode, 'description':encodingMode},
+    {'type':'length', 'content':headerLength, 'description':`${inputLength} bytes`},
+    {'type':'data', 'content':binaryString, 'description':JSON.stringify(text)},
+  ];
+
+  return { encodingMode, inputLength, binaryString:headerMode+headerLength+binaryString, segments }
 }
 
 function determineMode(text) {
@@ -23,6 +48,23 @@ function determineMode(text) {
   } else {
     return 'Byte';
   }
+}
+
+function determineLengthBits(version, mode) {
+  if (version <= 9)
+    return bitLengthsBitLengths[mode][0];
+  else if (version <= 26)
+    return bitLengthsBitLengths[mode][1];
+  else
+    return bitLengthsBitLengths[mode][2];
+}
+
+function encodeLength(version, mode, length) {
+  const bits = determineLengthBits(version, mode);
+  const binaryString = length.toString(2).padStart(bits, '0');
+  if (binaryString.length > bits)
+    throw new Error("String too long to be encoded for this version!");
+  return binaryString;
 }
 
 function encodeNumeric(text) {

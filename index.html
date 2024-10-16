@@ -14,6 +14,27 @@
     .numeric { background-color: #4CAF50; }
     .alphanumeric { background-color: #2196F3; }
     .byte { background-color: #f44336; }
+    .encoded-mode { background: #ffdddd; }
+    .encoded-length { background: #ddddff; }
+    .encoded-data { background: #ddffdd; }
+    .encoded-padding { background: #dddddd; }
+    .encoded-ecc { background: #ffbbbb; }
+
+    .error-correction-button {
+      padding: 5px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      background-color: #e0e0e0;
+      color: #000;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .selected {
+      background-color: #007BFF;
+      color: #fff;
+    }
   </style>
   <script src="layers.js"></script>
   <script src="qrcode.js"></script>
@@ -28,14 +49,25 @@
   </div>
   <div class="grid-container">
     <h2>Data Encoding</h2>
-
+    <!-- Add four selectable buttons here for Error Correction Level: "Low", "Medium", "Quartile", "High" -->
+    <!-- only one can be selected at a time -->
+    <div id="errorCorrectionLevel">
+      <button class="error-correction-button selected" data-level="L">Low (L)</button>
+      <button class="error-correction-button" data-level="M">Medium (M)</button>
+      <button class="error-correction-button" data-level="Q">Quartile (Q)</button>
+      <button class="error-correction-button" data-level="H">High (H)</button>
+    </div>
     <!-- Encoding Section -->
     <div class="section" id="encodeContainer">
-        <h2>Encoder</h2>
         <textarea id="inputText" placeholder="Enter your text here"></textarea>
+        <!-- On change, this should estimate its encoded length, determine minimum qr size, and update radio buttons with the version number -->
+        <!-- Then for the selected Error Correction Level, call the encoding to show the encoding strings below -->
         <div id="outputContainer">
             <h3>Encoded Binary String</h3>
             <tt id="binaryOutput" readonly></tt>
+            <!-- The binaryOutput should show the encoded string colored and delimited by codewords -->
+            <!-- Followed by another split up by bytes and with padding -->
+            <!-- Followed by a third, split into groups, with error correcting codes appended (not implemented yet) -->
             <div id="modeDisplay"><strong>Encoding Modes Used:</strong> <span id="modeUsed"></span></div>
         </div>
     </div>
@@ -88,7 +120,6 @@
     document.getElementById('size-slider').addEventListener('input', updateVersion);
     updateVersion();
 
-
     function displayMode(mode) {
       // Clear previous mode
       modeUsed.innerHTML = '';
@@ -104,14 +135,27 @@
       const inputText = document.getElementById('inputText');
       const binaryOutput = document.getElementById('binaryOutput');
       const modeUsed = document.getElementById('modeUsed');
+      const errorCorrectionLevel = document.querySelector('.error-correction-button.selected').dataset.level;
 
-      const { encodingMode, binaryString } = getAutomaticEncoding(inputText.value);
-      binaryOutput.innerHTML = binaryString;
+      const version = Number(document.getElementById('size-slider').value) || 6;
+      const { encodingMode, binaryString, segments } = getAutomaticEncoding(inputText.value, version, errorCorrectionLevel);
+      if (segments) {
+        binaryOutput.innerHTML = segments.map(({type,content,description})=>`<span class="encoded-${type}" title="${type} (${encodeURIComponent(description)})">${content}</span>`).join(" ");
+      } else {
+        binaryOutput.innerHTML = binaryString;
+      }
       displayMode(encodingMode);
-
     }
+
     document.getElementById('inputText').addEventListener('input', updateEncodedText);
 
+    document.querySelectorAll('.error-correction-button').forEach(button => {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.error-correction-button').forEach(btn => btn.classList.remove('selected'));
+        this.classList.add('selected');
+        updateEncodedText();
+      });
+    });
   </script>
 </body>
 </html>
